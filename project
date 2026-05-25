@@ -1,0 +1,898 @@
+import pandas as pd
+import numpy as np
+import os
+import datetime
+
+FILE = "jee_data.csv"
+streak_file = "streak.txt"
+
+# ================================
+# INIT
+# ================================
+
+if not os.path.exists(FILE):
+    pd.DataFrame(
+        columns=["user", "pc", "cc", "mc"]
+    ).to_csv(FILE, index=False)
+
+# ================================
+# LOAD SAVE
+# ================================
+
+def load():
+    return pd.read_csv(FILE)
+
+def save(df):
+    df.to_csv(FILE, index=False)
+
+# ================================
+# SAFE INPUT
+# ================================
+
+def safe_int(msg, limit=100):
+
+    try:
+        val = int(input(msg))
+
+        if val < 0:
+            return 0
+
+        if val > limit:
+            print(f"⚠ Max Allowed = {limit}")
+            return limit
+
+        return val
+
+    except:
+        print("⚠ Invalid Input → 0")
+        return 0
+
+# ================================
+# LOGIN
+# ================================
+
+def login():
+
+    try:
+        user = input("Enter Username: ").strip()
+
+        if user == "":
+            user = "demo"
+
+        return user
+
+    except:
+        return "demo"
+
+# ================================
+# TOTAL
+# ================================
+
+def total(r):
+    return r["pc"] + r["cc"] + r["mc"]
+
+# ================================
+# ADD TEST
+# ================================
+
+def add_test(user):
+
+    df = load()
+
+    print("\n🔥 ENTER TEST DATA")
+
+    print("\n📘 Physics")
+    pc = safe_int("Marks (0-100): ", 100)
+   
+    if pc > 100:
+
+        print("\n⚠ TOTAL MARKS CANNOT EXCEED 100")
+        print("❌ Test Not Saved")
+        return
+
+    print("\n🧪 Chemistry")
+    cc = safe_int("Marks (0-100): ", 100)
+    
+    if cc > 100:
+
+        print("\n⚠ TOTAL MARKS CANNOT EXCEED 100")
+        print("❌ Test Not Saved")
+        return
+
+    print("\n📐 Maths")
+    mc = safe_int("Marks (0-100): ", 100)
+    
+    if mc > 100:
+
+        print("\n⚠ TOTAL MARKS CANNOT EXCEED 100")
+        print("❌ Test Not Saved")
+        return
+
+    total_marks = pc + cc + mc
+
+    # REALISTIC LIMIT
+    
+    if total_marks > 300:
+
+        print("\n⚠ TOTAL MARKS CANNOT EXCEED 300")
+        print("❌ Test Not Saved")
+        return
+
+    # REALISTIC FEEDBACK
+    if total_marks < 40:
+        print("\n⚠ Very Low Score Detected")
+        print("👉 Focus On Basics + NCERT")
+
+    elif total_marks > 250:
+        print("\n🔥 TOPPER LEVEL PERFORMANCE")
+
+    # SAVE
+    new = pd.DataFrame(
+        [[user, pc, cc, mc]],
+        columns=["user", "pc", "cc", "mc"]
+    )
+
+    df = pd.concat([df, new], ignore_index=True)
+
+    save(df)
+
+    print("\n✅ Test Saved Successfully")
+    print("📊 Total Score:", total_marks, "/300")
+
+# ================================
+# ANALYTICS
+# ================================
+
+def analytics(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    scores = df["total"]
+
+    print("\n📊 ANALYTICS")
+    print("----------------------")
+    print("Average:", round(scores.mean(), 2), "/300")
+    print("Best:", scores.max())
+    print("Worst:", scores.min())
+    print("Tests Given:", len(scores))
+    print("Consistency:", round(100 - np.std(scores), 2), "%")
+
+# ================================
+# PERCENTAGE
+# ================================
+
+def percentage(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    avg = df["total"].mean()
+
+    percent = (avg / 300) * 100
+
+    print("\n📊 Percentage:", round(percent, 2), "%")
+
+# ================================
+# REAL RANK
+# ================================
+
+def real_rank(user):
+
+    df = load()
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    avg_scores = df.groupby("user")["total"].mean()
+
+    if user not in avg_scores:
+        print("⚠ No Data")
+        return
+
+    sorted_scores = avg_scores.sort_values(ascending=False)
+
+    rank = list(sorted_scores.index).index(user) + 1
+
+    print("\n🏆 Real Rank:", rank, "/", len(sorted_scores))
+
+# ================================
+# SUBJECT ANALYSIS
+# ================================
+
+def subject(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    subs = {
+        "Physics": df["pc"].mean(),
+        "Chemistry": df["cc"].mean(),
+        "Maths": df["mc"].mean()
+    }
+
+    print("\n📚 SUBJECT ANALYSIS")
+    print("----------------------")
+
+    for k, v in subs.items():
+        print(k, ":", round(v, 2))
+
+    print("\n🔥 Strongest:", max(subs, key=subs.get))
+    print("⚠ Weakest:", min(subs, key=subs.get))
+
+# ================================
+# AI SUGGESTION
+# ================================
+
+def suggestion(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    avg = (df["pc"] + df["cc"] + df["mc"]).mean()
+
+    print("\n🧠 AI SUGGESTION")
+    print("----------------------")
+
+    improve = (300 - avg) * 0.2
+
+    print("Possible Improvement:", round(improve, 2), "marks")
+
+    if avg < 120:
+        print("👉 Focus on basics + NCERT")
+
+    elif avg < 200:
+        print("👉 PYQs + speed practice")
+
+    else:
+        print("👉 Advanced mocks + accuracy")
+
+# ================================
+# LEADERBOARD
+# ================================
+
+def leaderboard():
+
+    df = load()
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    lb = df.groupby("user")["total"].mean().sort_values(ascending=False)
+
+    print("\n🏆 LEADERBOARD")
+    print("----------------------")
+
+    for i, (u, s) in enumerate(lb.items()):
+        print(f"{i+1}. {u} → {round(s, 2)}")
+
+# ================================
+# ACCURACY
+# ================================
+
+def accuracy(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    avg = df["total"].mean()
+
+    acc = (avg / 300) * 100
+
+    print("\n🎯 Estimated Accuracy:", round(acc, 2), "%")
+
+# ================================
+# MOTIVATION
+# ================================
+
+def motivation():
+
+    quotes = [
+        "Discipline beats motivation.",
+        "Consistency creates toppers.",
+        "AIR 1 starts from Day 1.",
+        "Small progress is still progress.",
+        "Mock tests reveal reality."
+    ]
+
+    print("\n🔥 MOTIVATION")
+    print("----------------------")
+    print(np.random.choice(quotes))
+
+# ================================
+# JEE SIMULATION
+# ================================
+
+def jee_model(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    avg = df["total"].mean()
+
+    percent = (avg / 300) * 100
+
+    # REALISTIC PREDICTION
+
+    if avg >= 295:
+        air = np.random.randint(1, 6)
+        perc = 99.999
+
+    elif avg >= 285:
+        air = np.random.randint(6, 50)
+        perc = 99.99
+
+    elif avg >= 270:
+        air = np.random.randint(50, 150)
+        perc = 99.95
+
+    elif avg >= 250:
+        air = np.random.randint(150, 500)
+        perc = 99.8
+
+    elif avg >= 220:
+        air = np.random.randint(500, 2000)
+        perc = 99
+
+    elif avg >= 180:
+        air = np.random.randint(2000, 8000)
+        perc = 97
+
+    elif avg >= 150:
+        air = np.random.randint(8000, 20000)
+        perc = 94
+
+    elif avg >= 120:
+        air = np.random.randint(20000, 50000)
+        perc = 90
+
+    else:
+        air = np.random.randint(50000, 200000)
+        perc = 70
+
+    print("\n🔥 JEE RESULT SIMULATION")
+    print("----------------------")
+    print("Average Score:", round(avg, 2), "/300")
+    print("Percentage:", round(percent, 2), "%")
+    print("Predicted Percentile:", perc)
+    print("Predicted AIR:", air)
+
+    # REALISTIC FEEDBACK
+
+    if avg >= 250:
+        print("🔥 Strong IIT Potential")
+
+    elif avg >= 180:
+        print("🚀 Good Competitive Position")
+
+    elif avg >= 120:
+        print("👍 Improving Stage")
+
+    else:
+        print("⚠ Focus On Strong Basics")
+
+# ================================
+# STUDY STREAK
+# ================================
+
+def streak():
+
+    today = str(datetime.date.today())
+
+    if not os.path.exists(streak_file):
+
+        with open(streak_file, "w") as f:
+            f.write(today + "\n1")
+
+        print("\n🔥 Current Streak: 1 Day")
+        return
+
+    with open(streak_file, "r") as f:
+        data = f.readlines()
+
+    last_date = data[0].strip()
+    streak_days = int(data[1])
+
+    old = datetime.datetime.strptime(last_date, "%Y-%m-%d").date()
+    now = datetime.datetime.strptime(today, "%Y-%m-%d").date()
+
+    diff = (now - old).days
+
+    if diff == 1:
+        streak_days += 1
+
+    elif diff > 1:
+        streak_days = 1
+
+    with open(streak_file, "w") as f:
+        f.write(today + "\n" + str(streak_days))
+
+    print("\n🔥 CURRENT STUDY STREAK:", streak_days, "days")
+
+# ================================
+# IQ ANALYSIS
+# ================================
+
+def iq_analysis(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    avg = (
+        df["pc"].mean() +
+        df["cc"].mean() +
+        df["mc"].mean()
+    )
+
+    print("\n🧠 PERFORMANCE INTELLIGENCE")
+
+    if avg >= 260:
+        print("🚀 Elite Advanced Problem Solver")
+
+    elif avg >= 200:
+        print("🔥 Strong Analytical Brain")
+
+    elif avg >= 150:
+        print("👍 Good Potential")
+
+    else:
+        print("⚠ Build Basics Stronger")
+
+# ================================
+# IMPROVEMENT TRACKER
+# ================================
+
+def improvement(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if len(df) < 2:
+        print("⚠ Need at least 2 tests")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    first = df["total"].iloc[0]
+    last = df["total"].iloc[-1]
+
+    improve = last - first
+
+    print("\n📈 IMPROVEMENT TRACKER")
+    print("First Score:", first)
+    print("Latest Score:", last)
+
+    if improve > 0:
+        print("🔥 Improved By:", improve)
+
+    elif improve < 0:
+        print("⚠ Dropped By:", abs(improve))
+
+    else:
+        print("👉 No Change")
+
+# ================================
+# BADGES
+# ================================
+
+def badges(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if df.empty:
+        print("⚠ No Data")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    best = df["total"].max()
+
+    print("\n🏆 ACHIEVEMENTS")
+
+    if best >= 280:
+        print("👑 AIR UNDER 10 MONSTER")
+
+    elif best >= 240:
+        print("🔥 NIT DESTROYER")
+
+    elif best >= 180:
+        print("⚡ Rising Competitor")
+
+    else:
+        print("🌱 Beginner Warrior")
+
+# ================================
+# FUTURE PREDICTOR
+# ================================
+
+def future_predictor(user):
+
+    df = load()
+    df = df[df["user"] == user]
+
+    if len(df) < 3:
+        print("⚠ Need at least 3 tests")
+        return
+
+    df["total"] = df.apply(total, axis=1)
+
+    scores = list(df["total"])
+
+    growth = (scores[-1] - scores[0]) / len(scores)
+
+    future = scores[-1] + (growth * 5)
+
+    future = min(300, future)
+
+    print("\n🚀 FUTURE PREDICTION")
+    print("Predicted Future Score:", round(future, 2), "/300")
+
+# ================================
+# LIFESTYLE SYSTEM
+# ================================
+
+def lifestyle():
+
+    print("\n🌙 STUDENT LIFESTYLE TRACKER")
+
+    sleep = safe_int("Sleep Hours: ", 24)
+    study = safe_int("Study Hours: ", 24)
+    water = safe_int("Water Glasses: ", 30)
+    exercise = safe_int("Exercise Minutes: ", 300)
+
+    print("\n📊 LIFESTYLE REPORT")
+
+    if sleep >= 10:
+    	print("😡 Don't sleep more")
+    if sleep >= 7:
+        print("😴 Sleep: Good")
+    else:
+        print("⚠ Improve Sleep")
+
+    if study >= 7.5:
+        print("📚 Study: Excellent")
+    else:
+        print("⚠ Increase Study Hours")
+
+    if water >= 8:
+        print("💧 Hydration: Good")
+    else:
+        print("⚠ Drink More Water")
+
+    if exercise >= 30:
+        print("🏃 Fitness: Active")
+    else:
+        print("⚠ Exercise More")
+
+# ================================
+# DAILY TARGET
+# ================================
+
+def daily_target():
+
+    target = safe_int("Daily Study Target: ", 24)
+    done = safe_int("Hours Completed: ", 24)
+
+    print("\n🎯 DAILY TARGET REPORT")
+
+    if done >= target:
+        print("🔥 Target Achieved")
+    else:
+        print("⚠ Remaining:", target - done, "hours")
+
+# ================================
+# BURNOUT DETECTOR
+# ================================
+
+def burnout():
+
+    stress = safe_int("Stress Level (1-10): ", 10)
+    sleep = safe_int("Sleep Hours: ", 24)
+
+    print("\n🧠 BURNOUT ANALYSIS")
+
+    if stress >= 8 and sleep < 5:
+        print("⚠ HIGH BURNOUT RISK")
+
+    elif stress >= 5:
+        print("⚠ Moderate Stress")
+
+    else:
+        print("🔥 Healthy State")
+
+# ================================
+# WATER TRACKER
+# ================================
+
+def water_tracker():
+
+    water = safe_int("Glasses Of Water Today: ", 30)
+
+    print("\n💧 WATER TRACKER")
+
+    if water >= 8:
+        print("🔥 Excellent Hydration")
+    else:
+        print("⚠ Drink More Water")
+
+# ================================
+# DOPAMINE DETOX
+# ================================
+
+def dopamine_detox():
+
+    screen = safe_int("Screen Time Hours: ", 24)
+
+    print("\n📵 DOPAMINE DETOX")
+
+    if screen >= 3:
+        print("⚠ Very High Screen Time")
+    elif screen >= 1.5:
+        print("⚠ Moderate Screen Time")
+    else:
+        print("🔥 Best Controlled Screen Usage")
+
+# ================================
+# SLEEP ANALYZER
+# ================================
+
+def sleep_analyzer():
+
+    sleep = safe_int("Sleep Hours: ", 24)
+
+    print("\n😴 SLEEP ANALYSIS")
+  
+    if sleep >= 10:
+    	print("😡 Don't sleep more it's not jee attitude")
+    if sleep >= 8:
+        print("🔥 Optimal Recovery")
+    elif sleep >= 6:
+        print("👍 Acceptable Sleep")
+    else:
+        print("⚠ Sleep Deprivation")
+
+
+# ================================
+# JEE MENU
+# ================================
+
+def jee_menu(user):
+
+    while True:
+
+        print("\n==============================")
+        print("🔥 JEE AI COACH")
+        print("==============================")
+        print("1 Add Test")
+        print("2 Analytics")
+        print("3 Percentage")
+        print("4 Real Rank")
+        print("5 Subject Analysis")
+        print("6 AI Suggestion")
+        print("7 Leaderboard")
+        print("8 JEE Simulation")
+        print("9 Accuracy")
+        print("10 Motivation")
+        print("11 Study Streak")
+        print("12 IQ Analysis")
+        print("13 Improvement Tracker")
+        print("14 Achievement Badges")
+        print("15 Future Predictor")
+        print("16 Back")
+        print("==============================")
+
+        ch = input("Choose Option: ")
+
+        if ch == "1":
+            add_test(user)
+
+        elif ch == "2":
+            analytics(user)
+
+        elif ch == "3":
+            percentage(user)
+
+        elif ch == "4":
+            real_rank(user)
+
+        elif ch == "5":
+            subject(user)
+
+        elif ch == "6":
+            suggestion(user)
+
+        elif ch == "7":
+            leaderboard()
+
+        elif ch == "8":
+            jee_model(user)
+
+        elif ch == "9":
+            accuracy(user)
+
+        elif ch == "10":
+            motivation()
+
+        elif ch == "11":
+            streak()
+
+        elif ch == "12":
+            iq_analysis(user)
+
+        elif ch == "13":
+            improvement(user)
+
+        elif ch == "14":
+            badges(user)
+
+        elif ch == "15":
+            future_predictor(user)
+
+        elif ch == "16":
+            break
+
+        else:
+            print("⚠ Invalid Choice")
+
+# ================================
+# LIFESTYLE MENU
+# ================================
+
+def lifestyle_menu():
+
+    while True:
+
+        print("\n==============================")
+        print("🌙 STUDENT LIFESTYLE SYSTEM")
+        print("==============================")
+        print("1 Lifestyle Analysis")
+        print("2 Motivation")
+        print("3 Brain Power Tips")
+        print("4 Focus Mode")
+        print("5 Daily Target")
+        print("6 Burnout Detector")
+        print("7 Water Tracker")
+        print("8 Dopamine Detox")
+        print("9 Sleep Analyzer")
+        print("10 Back")
+        print("==============================")
+
+        ch = input("Choose Option: ")
+
+        if ch == "1":
+            lifestyle()
+
+        elif ch == "2":
+            motivation()
+
+        elif ch == "3":
+
+            print("\n🧠 BRAIN POWER TIPS")
+            print("----------------------")
+            print("👉 Sleep 7-8 hours")
+            print("👉 Revise before sleep")
+            print("👉 Drink more water")
+            print("👉 Avoid phone while studying")
+            print("👉 Exercise daily")
+
+        elif ch == "4":
+
+            print("\n🎯 FOCUS MODE")
+            print("----------------------")
+            print("1. Study 50 mins")
+            print("2. Break 10 mins")
+            print("3. Repeat 4 times")
+            print("4. Take long break")
+            print("5. No multitasking")
+
+        elif ch == "5":
+            daily_target()
+
+        elif ch == "6":
+            burnout()
+
+        elif ch == "7":
+            water_tracker()
+
+        elif ch == "8":
+            dopamine_detox()
+
+        elif ch == "9":
+            sleep_analyzer()
+            
+        elif ch == "10":
+            break
+
+        else:
+            print("⚠ Invalid Choice")
+
+# ================================
+# MAIN SYSTEM
+# ================================
+
+def main():
+
+    print("\n🔥 ULTIMATE JEE AI SYSTEM 🔥")
+
+    user = login()
+
+    while True:
+
+        print("\n================================")
+        print("1 🔥 JEE AI COACH")
+        print("2 🌙 STUDENT LIFESTYLE")
+        print("3 ❌ EXIT")
+        print("================================")
+
+        ch = input("Choose Option: ")
+
+        if ch == "1":
+            jee_menu(user)
+
+        elif ch == "2":
+            lifestyle_menu()
+
+        elif ch == "3":
+            print("\n👋 Exiting System...")
+            break
+
+        else:
+            print("⚠ Invalid Choice")
+
+# ================================
+# RUN
+# ================================
+
+print("🚀 Starting Ultimate JEE AI System...")
+
+try:
+    main()
+
+except Exception as e:
+    print("\n⚠ ERROR OCCURRED")
+    print(e)
+
+input("\nPress Enter To Exit...")
